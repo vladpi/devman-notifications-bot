@@ -71,7 +71,7 @@ def main():
     bot_token = os.environ.get('BOT_TOKEN')
     author_chat_id = os.environ.get('AUTHOR_CHAT_ID')
 
-    logging.debug('Create Telegram bot.')
+    logger.debug('Create Telegram bot.')
     devman_bot = telegram.Bot(token=bot_token)
 
     logger.info('Start long polling.')
