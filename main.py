@@ -40,11 +40,6 @@ def get_message_text_from_json(attempt_data):
     return text
 
 
-def send_message(bot, chat_id, message):
-    """Send message from bot to user with chat_id"""
-    bot.send_message(chat_id=chat_id, text=message, parse_mode=telegram.ParseMode.MARKDOWN)
-
-
 def main():
     load_dotenv()
 
