@@ -8,6 +8,19 @@ from dotenv import load_dotenv
 from requests.exceptions import ConnectionError, ReadTimeout
 
 
+class BotLogsHandler(logging.Handler):
+    def __init__(self, bot, author_chat_id):
+        super(BotLogsHandler, self).__init__()
+        self.bot = bot
+        self.chat_id = author_chat_id
+
+    def emit(self, record):
+        log_entry = self.format(record)
+        message_text = '{logger_name}:\n{text}'.format(logger_name=record.name, text=log_entry)
+        self.bot.send_message(chat_id=self.chat_id, text=message_text,
+                              parse_mode=telegram.ParseMode.MARKDOWN)
+
+
 def get_new_attempts(token):
     """ Long polling for new new reviews results."""
 
@@ -40,26 +53,42 @@ def get_message_text_from_json(attempt_data):
     return text
 
 
-def main():
-    load_dotenv()
+def setup_bot_logger():
+    logs_bot_token = os.environ.get('LOGS_BOT_TOKEN')
+    author_chat_id = os.environ.get('AUTHOR_CHAT_ID')
 
+    logs_bot = telegram.Bot(token=logs_bot_token)
+
+    logger = logging.getLogger("Notification Bot")
+    logger.setLevel(logging.INFO)
+    logger.addHandler(BotLogsHandler(logs_bot, author_chat_id))
+
+    return logger
+
+
+def main():
     devman_token = os.environ.get('DEVMAN_TOKEN')
     bot_token = os.environ.get('BOT_TOKEN')
     author_chat_id = os.environ.get('AUTHOR_CHAT_ID')
 
-    logging.info('Create Telegram bot.')
+    logging.debug('Create Telegram bot.')
     devman_bot = telegram.Bot(token=bot_token)
 
-    logging.info('Start long polling.')
+    logger.info('Start long polling.')
     for response_json in get_new_attempts(devman_token):
-        logging.info('Received new attempts result.')
+        logger.debug('Received new attempts result.')
         for new_attempt in response_json.get('new_attempts', []):
-            logging.info('Send message for review result.')
+            logger.debug('Send message for review result.')
             message_text = get_message_text_from_json(new_attempt)
             devman_bot.send_message(chat_id=author_chat_id, text=message_text,
                                     parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    main()
+    load_dotenv()
+    logger = setup_bot_logger()
+    while True:
+        try:
+            main()
+        except Exception as ex:
+            logger.error(ex, exc_info=True)
