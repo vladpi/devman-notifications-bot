@@ -32,7 +32,7 @@ def get_new_attempts(token):
         try:
             response = requests.get(url, params=params, headers=headers, timeout=100)
             response.raise_for_status()
-            params['timestamp'] = response.json().get('timestamp_to_request')
+            params['timestamp'] = response.json().get('timestamp_to_request', params['timestamp'])
             yield response.json()
 
         except (ConnectionError, ReadTimeout):
